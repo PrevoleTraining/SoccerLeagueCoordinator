@@ -24,6 +24,9 @@ let playerHeights: [String: Double] = [
     "Herschel Krustofski": 45.0
 ]
 
+/*
+ * Accordingly to my understanding of the instructions, we have to set a dictionnary for players with all the data as Strings
+ */
 let players = [
     [ "name": "Joe Smith",           "height": "42", "hasExperience": "YES", "guardianName": "Jim and Jan Smith"           ],
     [ "name": "Jill Tanner",         "height": "36", "hasExperience": "YES", "guardianName": "Clara Tanner"                ],
