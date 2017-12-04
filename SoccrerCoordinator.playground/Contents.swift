@@ -23,6 +23,25 @@ var teamSharks: [[String: String]] = []
 var teamDragons: [[String: String]] = []
 var teamRaptors: [[String: String]] = []
 
+var letters: [String] = []
+
+/*
+ * Lookup team from its name
+ */
+func getTeam(fromName name: String) -> (players: [[String: String]], playDate: String) {
+    switch name {
+        case "Sharks": return (players: teamSharks, playDate: "March 17, 1pm")
+        case "Dragons": return (players: teamDragons, playDate: "March 17, 3pm")
+        case "Raptors": return (players: teamRaptors, playDate: "March 18, 1pm")
+        default:
+            print("There is no team for name: \(name)")
+            return (players: [[:]], playDate: "n/a")
+    }
+}
+
+/*
+ * Helper function to check if a player is experienced or not
+ */
 func hasExperience(player: [String: String]) -> Bool {
     return player["hasExperience"] == "YES"
 }
@@ -66,26 +85,72 @@ func playerCanBeAssigned(toTeam players: [[String: String]], withPlayer player: 
     }
 }
 
-var playersToAssign = players
-
-for player in playersToAssign {
-    // We try to assign the player to the first team, then the second and finally the third team
-    if playerCanBeAssigned(toTeam: teamSharks, withPlayer: player) {
-        teamSharks.append(player)
-    } else if playerCanBeAssigned(toTeam: teamDragons, withPlayer: player) {
-        teamDragons.append(player)
-    } else if playerCanBeAssigned(toTeam: teamRaptors, withPlayer: player) {
-        teamRaptors.append(player)
+func assignPlayers() {
+    for player in players {
+        // We try to assign the player to the first team, then the second and finally the third team
+        if playerCanBeAssigned(toTeam: teamSharks, withPlayer: player) {
+            teamSharks.append(player)
+        } else if playerCanBeAssigned(toTeam: teamDragons, withPlayer: player) {
+            teamDragons.append(player)
+        } else if playerCanBeAssigned(toTeam: teamRaptors, withPlayer: player) {
+            teamRaptors.append(player)
+        }
     }
 }
 
+/*
+ * Create the letter content with data:
+ * - playDate, team name, player name and guardian name
+ */
+func createLetter(forPlayer player: [String: String], teamName: String, playDate: String) -> String {
+    return "Fellow Guardian \(player["guardianName"]!),\n\n" +
+        "Your child \(player["name"]!) is invited to play his soccer game on the \(playDate). Don't miss the date.\n\n" +
+        "Take note that your child will be part of the team \(teamName).\n\n" +
+        "Best regards.\n" +
+        "Your Soccer Leaguer Coordinator - Laurent"
+}
 
-print(teamSharks)
-print(teamSharks.count)
-print(teamDragons)
-print(teamDragons.count)
-print(teamRaptors)
-print(teamRaptors.count)
+/*
+ * Helper function to print a single letter
+ */
+func printLetter(letter: String) {
+    print("--------------------------------")
+    print(letter)
+    print("--------------------------------")
+    print()
+    print()
+}
 
+/*
+ * Create all the letters for a specific team
+ */
+func createLetters(forTeam name: String) {
+    let teamData = getTeam(fromName: name)
+    
+    for player in teamData.players {
+        letters.append(createLetter(forPlayer: player, teamName: name, playDate: teamData.playDate))
+        printLetter(letter: letters.last!)
+    }
+}
+
+assignPlayers()
+
+/*
+ * Create letters for all the teams
+ */
+let teams = [ "Sharks", "Dragons", "Raptors" ]
+for team in teams {
+    createLetters(forTeam: team)
+}
+
+/*
+ // For Debug !
+ print(teamSharks)
+ print(teamSharks.count)
+ print(teamDragons)
+ print(teamDragons.count)
+ print(teamRaptors)
+ print(teamRaptors.count)
+ */
 
 
