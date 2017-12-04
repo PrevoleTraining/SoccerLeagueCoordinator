@@ -1,3 +1,29 @@
+/*
+ * Assumption, for this project, we are asked to store all the data as Strings. Therefore, we
+ * need to calculate an average of Doubles without type casting. The following data structure is
+ * is a workaround to the previous explained limitation
+ */
+let playerHeights: [String: Double] = [
+    "Joe Smith":           42.0,
+    "Jill Tanner":         36.0,
+    "Bill Bon":            43.0,
+    "Eva Gordon":          45.0,
+    "Matt Gill":           40.0,
+    "Kimmy Stein":         41.0,
+    "Sammy Adams":         45.0,
+    "Karl Saygan":         42.0,
+    "Suzane Greenberg":    44.0,
+    "Sal Dali":            41.0,
+    "Joe Kavalier":        39.0,
+    "Ben Finkelstein":     44.0,
+    "Diego Soto":          41.0,
+    "Chloe Alaska":        47.0,
+    "Arnold Willis":       43.0,
+    "Phillip Helm":        44.0,
+    "Les Clay":            42.0,
+    "Herschel Krustofski": 45.0
+]
+
 let players = [
     [ "name": "Joe Smith",           "height": "42", "hasExperience": "YES", "guardianName": "Jim and Jan Smith"           ],
     [ "name": "Jill Tanner",         "height": "36", "hasExperience": "YES", "guardianName": "Clara Tanner"                ],
@@ -19,11 +45,42 @@ let players = [
     [ "name": "Herschel Krustofski", "height": "45", "hasExperience": "YES", "guardianName": "Hyman and Rachel Krustofski" ],
 ];
 
+var experiencedPlayers: [[String: String]] = []
+var unexperiencedPlayers: [[String: String]] = []
+
 var teamSharks: [[String: String]] = []
 var teamDragons: [[String: String]] = []
 var teamRaptors: [[String: String]] = []
 
 var letters: [String] = []
+
+let numberOfTeams = 3
+
+/*
+ * Helper function to check if a player is experienced or not
+ */
+func hasExperience(player: [String: String]) -> Bool {
+    return player["hasExperience"] == "YES"
+}
+
+/*
+ * Separate players in two groups of players (experienced vs. unexperienced)
+ */
+func splitPlayersByExperience() {
+    for player in players {
+        if hasExperience(player: player) {
+            experiencedPlayers.append(player)
+        } else {
+            unexperiencedPlayers.append(player)
+        }
+    }
+}
+
+func sortPlayersByHeight(players: [[String: String]]) -> [[String: String]] {
+    return players.sorted {
+        return playerHeights[$0["name"]!]! < playerHeights[$1["name"]!]!
+    }
+}
 
 /*
  * Lookup team from its name
@@ -37,13 +94,6 @@ func getTeam(fromName name: String) -> (players: [[String: String]], playDate: S
             print("There is no team for name: \(name)")
             return (players: [[:]], playDate: "n/a")
     }
-}
-
-/*
- * Helper function to check if a player is experienced or not
- */
-func hasExperience(player: [String: String]) -> Bool {
-    return player["hasExperience"] == "YES"
 }
 
 /*
@@ -61,41 +111,32 @@ func countExperiencedPlayers(players: [[String: String]]) -> Int {
     return nbExperiencedPlayers;
 }
 
-let numberOfTeams = 3
-
-let numberOfPlayersPerTeam = players.count / numberOfTeams
-let totalExperiencedPlayers = countExperiencedPlayers(players: players)
-let numberOfExperiencedPlayersPerTeam = totalExperiencedPlayers / numberOfTeams
-
 /*
- * Check if the player can be assigned to the team according to the givent rules
- * - Same number of experienced players in all teams
+ * Assign the players to a team
  */
-func playerCanBeAssigned(toTeam players: [[String: String]], withPlayer player: [String: String]) -> Bool {
-    // Do not add more players than it is allowed
-    if players.count >= numberOfPlayersPerTeam {
-        return false;
-    }
-    
-    // When player has experience, we check we not have the maximum of experienced players in the team
-    if hasExperience(player: player) {
-        return countExperiencedPlayers(players: players) < numberOfExperiencedPlayersPerTeam
-    } else { // When player has no experience, we check the maximum remaining players in the team is reached
-        return players.count - countExperiencedPlayers(players: players) < numberOfPlayersPerTeam - numberOfExperiencedPlayersPerTeam
+func assignPlayers(players: [[String: String]]) {
+    for i in 0..<players.count {
+        if (i % numberOfTeams == 0) { // First team
+            teamSharks.append(players[i])
+        } else if (i % numberOfTeams == 1) { // Second team
+            teamDragons.append(players[i])
+        } else { // Third team
+            teamRaptors.append(players[i])
+        }
     }
 }
 
-func assignPlayers() {
-    for player in players {
-        // We try to assign the player to the first team, then the second and finally the third team
-        if playerCanBeAssigned(toTeam: teamSharks, withPlayer: player) {
-            teamSharks.append(player)
-        } else if playerCanBeAssigned(toTeam: teamDragons, withPlayer: player) {
-            teamDragons.append(player)
-        } else if playerCanBeAssigned(toTeam: teamRaptors, withPlayer: player) {
-            teamRaptors.append(player)
-        }
-    }
+/*
+ * Compute the repartion of all the players in the different teams
+ */
+func processRepartition() {
+    splitPlayersByExperience()
+    
+    experiencedPlayers = sortPlayersByHeight(players: experiencedPlayers)
+    unexperiencedPlayers = sortPlayersByHeight(players: unexperiencedPlayers)
+    
+    assignPlayers(players: experiencedPlayers)
+    assignPlayers(players: unexperiencedPlayers)
 }
 
 /*
@@ -133,7 +174,7 @@ func createLetters(forTeam name: String) {
     }
 }
 
-assignPlayers()
+processRepartition()
 
 /*
  * Create letters for all the teams
@@ -143,14 +184,21 @@ for team in teams {
     createLetters(forTeam: team)
 }
 
-/*
- // For Debug !
- print(teamSharks)
- print(teamSharks.count)
- print(teamDragons)
- print(teamDragons.count)
- print(teamRaptors)
- print(teamRaptors.count)
- */
+func calculateAvgHeight(players: [[String: String]]) -> Double {
+    var sum = 0.0
+    var nbPlayers = 0.0
+    
+    for player in players {
+        sum += playerHeights[player["name"]!]!
+        nbPlayers += 1.0
+    }
+    
+    return sum / nbPlayers
+}
+
+print("Average height of team Sharks is: \(calculateAvgHeight(players: teamSharks)) inches")
+print("Average height of team Dragons is: \(calculateAvgHeight(players: teamDragons)) inches")
+print("Average height of team Raptors is: \(calculateAvgHeight(players: teamRaptors)) inches")
+
 
 
