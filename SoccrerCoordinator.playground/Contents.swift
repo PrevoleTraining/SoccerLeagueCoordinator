@@ -2,6 +2,9 @@
  * Assumption, for this project, we are asked to store all the data as Strings. Therefore, we
  * need to calculate an average of Doubles without type casting. The following data structure is
  * is a workaround to the previous explained limitation
+ *
+ * Having the heights directly into the players data in Double type can help to really simplify the code.
+ * For example, we can avoid double guards: one for player from players, another one for player height
  */
 let playerHeights: [String: Double] = [
     "Joe Smith":           42.0,
@@ -81,7 +84,17 @@ func splitPlayersByExperience() {
 
 func sortPlayersByHeight(players: [[String: String]]) -> [[String: String]] {
     return players.sorted {
-        return playerHeights[$0["name"]!]! < playerHeights[$1["name"]!]!
+        // Arbitrary sort unknown any player name
+        guard let leftName = $0["name"], let rightName = $1["name"] else {
+            return false
+        }
+        
+        // Arbitrary sort unknown player height
+        guard let leftHeight = playerHeights[leftName], let rightHeight = playerHeights[rightName] else {
+            return false
+        }
+        
+        return leftHeight < rightHeight
     }
 }
 
@@ -102,7 +115,7 @@ func getTeam(fromName name: String) -> (players: [[String: String]], playDate: S
 /*
  * Count the number of experienced players in a collection of players
  */
-func countExperiencedPlayers(players: [[String: String]]) -> Int {
+func countExperienced(players: [[String: String]]) -> Int {
     var nbExperiencedPlayers = 0
     
     for player in players {
@@ -117,7 +130,7 @@ func countExperiencedPlayers(players: [[String: String]]) -> Int {
 /*
  * Assign the players to a team
  */
-func assignPlayers(players: [[String: String]]) {
+func assign(players: [[String: String]]) {
     for i in 0..<players.count {
         if (i % numberOfTeams == 0) { // First team
             teamSharks.append(players[i])
@@ -138,20 +151,34 @@ func processRepartition() {
     experiencedPlayers = sortPlayersByHeight(players: experiencedPlayers)
     unexperiencedPlayers = sortPlayersByHeight(players: unexperiencedPlayers)
     
-    assignPlayers(players: experiencedPlayers)
-    assignPlayers(players: unexperiencedPlayers)
+    assign(players: experiencedPlayers)
+    assign(players: unexperiencedPlayers)
+}
+
+func createLetterTextWith(playerName: String, guardianName: String, teamName: String, playDate: String) -> String {
+    return "Fellow Guardian \(guardianName),\n\n" +
+        "Your child \(playerName) is invited to play his soccer game on the \(playDate). Don't miss the date.\n\n" +
+        "Take note that your child will be part of the team \(teamName).\n\n" +
+        "Best regards.\n" +
+        "Your Soccer Leaguer Coordinator - Laurent"
 }
 
 /*
  * Create the letter content with data:
  * - playDate, team name, player name and guardian name
  */
-func createLetter(forPlayer player: [String: String], teamName: String, playDate: String) -> String {
-    return "Fellow Guardian \(player["guardianName"]!),\n\n" +
-        "Your child \(player["name"]!) is invited to play his soccer game on the \(playDate). Don't miss the date.\n\n" +
-        "Take note that your child will be part of the team \(teamName).\n\n" +
-        "Best regards.\n" +
-        "Your Soccer Leaguer Coordinator - Laurent"
+func createLetter(for player: [String: String], teamName: String, playDate: String) -> String {
+    guard let playerName = player["name"] else {
+        print("No player name for player \(player)")
+        return createLetterTextWith(playerName: "Unknown player", guardianName: "Unknown guardian", teamName: teamName, playDate: playDate)
+    }
+    
+    guard let guardianName = player["guardianName"] else {
+        print("No guardian name for player \(player)")
+        return createLetterTextWith(playerName: playerName, guardianName: "Unknown guardian", teamName: teamName, playDate: playDate)
+    }
+ 
+    return createLetterTextWith(playerName: playerName, guardianName: guardianName, teamName: teamName, playDate: playDate)
 }
 
 /*
@@ -168,12 +195,19 @@ func printLetter(letter: String) {
 /*
  * Create all the letters for a specific team
  */
-func createLetters(forTeam name: String) {
+func createLetters(for name: String) {
     let teamData = getTeam(fromName: name)
     
     for player in teamData.players {
-        letters.append(createLetter(forPlayer: player, teamName: name, playDate: teamData.playDate))
-        printLetter(letter: letters.last!)
+        letters.append(createLetter(for: player, teamName: name, playDate: teamData.playDate))
+        
+        guard let lastInsertedLetter = letters.last else {
+            print("The last letter is unreadable or was lost by the post office")
+            printLetter(letter: "Oops! The letter was lost in an electric storm")
+            return
+        }
+        
+        printLetter(letter: lastInsertedLetter)
     }
 }
 
@@ -184,7 +218,7 @@ processRepartition()
  */
 let teams = [ "Sharks", "Dragons", "Raptors" ]
 for team in teams {
-    createLetters(forTeam: team)
+    createLetters(for: team)
 }
 
 func calculateAvgHeight(players: [[String: String]]) -> Double {
@@ -192,7 +226,17 @@ func calculateAvgHeight(players: [[String: String]]) -> Double {
     var nbPlayers = 0.0
     
     for player in players {
-        sum += playerHeights[player["name"]!]!
+        guard let playerName = player["name"] else {
+            print("Unknown player name for \(player), continue to next player")
+            continue
+        }
+        
+        guard let playerHeight = playerHeights[playerName] else {
+            print("Unknown player height for \(playerName), continue to next player")
+            continue
+        }
+        
+        sum += playerHeight
         nbPlayers += 1.0
     }
     
