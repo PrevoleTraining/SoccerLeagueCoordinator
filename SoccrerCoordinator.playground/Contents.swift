@@ -62,6 +62,8 @@ var letters: [String] = []
 
 let numberOfTeams = 3
 
+let heightAverageThreshold = 1.5
+
 /*
  * Helper function to check if a player is experienced or not
  */
@@ -156,11 +158,16 @@ func processRepartition() {
 }
 
 func createLetterTextWith(playerName: String, guardianName: String, teamName: String, playDate: String) -> String {
-    return "Fellow Guardian \(guardianName),\n\n" +
-        "Your child \(playerName) is invited to play his soccer game on the \(playDate). Don't miss the date.\n\n" +
-        "Take note that your child will be part of the team \(teamName).\n\n" +
-        "Best regards.\n" +
-        "Your Soccer Leaguer Coordinator - Laurent"
+    return """
+Fellow Guardian \(guardianName),
+
+Your child \(playerName) is invited to play his soccer game on the \(playDate). Don't miss the date.
+
+Take note that your child will be part of the team \(teamName).
+
+Best regards.
+Your Soccer Leaguer Coordinator - Laurent
+"""
 }
 
 /*
@@ -221,9 +228,12 @@ for team in teams {
     createLetters(for: team)
 }
 
+/*
+ * Calculate the average height of a collection of players
+ */
 func calculateAvgHeight(players: [[String: String]]) -> Double {
     var sum = 0.0
-    var nbPlayers = 0.0
+    var nbPlayers = 0.0 // Avoid type casting
     
     for player in players {
         guard let playerName = player["name"] else {
@@ -242,6 +252,113 @@ func calculateAvgHeight(players: [[String: String]]) -> Double {
     
     return sum / nbPlayers
 }
+
+/*
+ * Calculate the average height of all teams and return the result
+ * in this order: sharks, dragons and raptors
+ */
+func calculateAvgHeightForAllTeams() -> [Double] {
+    return [
+        calculateAvgHeight(players: teamSharks),
+        calculateAvgHeight(players: teamDragons),
+        calculateAvgHeight(players: teamRaptors)
+    ]
+}
+
+// Acts as a random number
+var permutationIndex = 0
+
+/*
+ * Permute a player from first team to second team, and a player from second team to first team.
+ *
+ * By definition, the teams are ordered in terms of experienced players are placed first and then
+ * the other players. Also, each team has the same number of experienced players and non-experienced.
+ * Therefore, we can permute any player as long as we permute the same position in both teams.
+ * Ex: teamA -> first player with teamB -> first player
+ */
+func permutePlayersBetweenTeams(first firstTeam: [[String: String]], second secondTeam: [[String: String]]) -> (first: [[String: String]], second: [[String: String]]) {
+    var teams: (first: [[String: String]], second: [[String: String]]) = (first: firstTeam, second: secondTeam)
+    
+    // Avoid permutation between always the same players. A random permutation is also a possibility.
+    let realPermutationIndex = permutationIndex % firstTeam.count
+    
+    let perumtedPlayer = teams.first[realPermutationIndex]
+    teams.first[realPermutationIndex] = teams.second[realPermutationIndex]
+    teams.second[realPermutationIndex] = perumtedPlayer
+    
+    permutationIndex += 1
+    
+    return teams
+}
+
+/*
+ * Retrieve a team based on a index where:
+ * 1 -> sharks, 2 -> dragons, 3 -> raptors
+ */
+func getTeam(for index: Int) -> [[String: String]] {
+    switch (index) {
+        case 0: return teamSharks
+        case 1: return teamDragons
+        case 2: return teamRaptors
+        default:
+            print("Ouch! There is no team for index \(index)")
+            return []
+    }
+}
+
+/*
+ * Update a team with the same principle of index. The mapping
+ * is the same than getTeam
+ */
+func updateTeam(with team: [[String: String]], for index: Int) {
+    switch (index) {
+        case 0: teamSharks = team
+        case 1: teamDragons = team
+        case 2: teamRaptors = team
+        default: print("Ouch! There is no team for index \(index)")
+    }
+}
+
+/*
+ * Manage the permutation of players between two teams based of the team with the lowest height average and
+ * the team with the highest height average.
+ */
+func managePermutationWith(averageHeights: [Double], minAverage: Double, maxAverage: Double) {
+    guard let firstTeamIndex = averageHeights.index(of: minAverage), let secondTeamIndex = averageHeights.index(of: maxAverage) else {
+        print("Ouch! There is no index for min or max average. Should not be possible here!")
+        return
+    }
+    
+    // Retrieve the teams
+    let firstTeam = getTeam(for: firstTeamIndex)
+    let secondTeam = getTeam(for: secondTeamIndex)
+    
+    // Proceed the permutation of players between both team
+    let teams = permutePlayersBetweenTeams(first: firstTeam, second: secondTeam)
+    
+    updateTeam(with: teams.first, for: firstTeamIndex)
+    updateTeam(with: teams.second, for: secondTeamIndex)
+}
+
+var averageRuleRepected: Bool
+
+repeat {
+    let teamHeightAverages: [Double] = calculateAvgHeightForAllTeams()
+    
+    // Retrieve the min and max of the averages
+    guard let minAverage = teamHeightAverages.min(), let maxAverage = teamHeightAverages.max() else {
+        print("Ouch! There is no min or no max. Should not be possible here!")
+        break
+    }
+    
+    // Diff the averages to check against threshold
+    averageRuleRepected = maxAverage - minAverage < heightAverageThreshold
+    
+    // If the threshold rule is not respected, we try to permute two players between two teams
+    if (!averageRuleRepected) {
+        managePermutationWith(averageHeights: teamHeightAverages, minAverage: minAverage, maxAverage: maxAverage)
+    }
+} while (!averageRuleRepected)
 
 print("Average height of team Sharks is: \(calculateAvgHeight(players: teamSharks)) inches")
 print("Average height of team Dragons is: \(calculateAvgHeight(players: teamDragons)) inches")
